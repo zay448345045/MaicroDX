@@ -1,10 +1,15 @@
 name: Download and Upload MaricroDX to Release
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for the release (e.g., v2.0.2026.1.7)'
+        required: true
+        default: 'v2.0.2026.1.7'
   push:
     tags:
-      - 'v*'  # 推送 v 开头的 Tag 自动触发（如 v2.0.2026）
+      - 'v*'  # 推送 v 开头的 Tag 自动触发
 
 jobs:
   upload-asset:
@@ -13,21 +18,20 @@ jobs:
       - name: Create download directory
         run: mkdir -p ./release-files
 
-      # 核心步骤：下载指定的 MaricroDX 压缩包
+      # 下载指定文件
       - name: Download MaricroDX_v2.0.2026.1.7.rar
         run: |
           DOWNLOAD_URL="https://release-assets.githubusercontent.com/github-production-release-asset/1050443222/cdd0769d-9824-4d5b-8fe9-f202e8b273e8?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-01-14T02%3A30%3A23Z&rscd=attachment%3B+filename%3DMaricroDX_v2.0.2026.1.7.rar&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-01-14T01%3A30%3A14Z&ske=2026-01-14T02%3A30%3A23Z&sks=b&skv=2018-11-09&sig=dnU2gaMSQbMYnHR8hO2VDE2uE4DB00wVT9ScfCYtYfU%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc2ODM1NjAxNCwibmJmIjoxNzY4MzU0MjE0LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.zJwUFfbb28k85O4_wKaPOFc3PKN0Mj2n0-bkNRKkCaY&response-content-disposition=attachment%3B%20filename%3DMaricroDX_v2.0.2026.1.7.rar&response-content-type=application%2Foctet-stream"
           curl --fail -L -o ./release-files/MaricroDX_v2.0.2026.1.7.rar "${DOWNLOAD_URL}"
-          # 验证下载结果
           ls -lh ./release-files/
 
-      # 上传到自己仓库的 Release
+      # 上传到 Release（修复 Tag 关联问题）
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: ./release-files/MaricroDX_v2.0.2026.1.7.rar
           body: "Automatically uploaded MaricroDX_v2.0.2026.1.7 via GitHub Actions"
-          # 可选：设置为预发布
-          # prerelease: true
+          overwrite: true  # 覆盖同名 Tag 的 Release（可选）
+          tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}  # 优先用手动输入的 Tag，否则用推送的 Tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
